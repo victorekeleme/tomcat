@@ -2,6 +2,18 @@
 
 TOMCAT="https://downloads.apache.org/tomcat/tomcat-9/v9.0.70/bin/apache-tomcat-9.0.70.zip"
 
+#checking for java
+java -version
+
+if [ $? -eq 0 ]
+then
+	echo "Java is already installed"
+else
+	echo "Installing Java"
+	sudo yum install java-1.8.0-openjdk-devel -y
+fi
+
+#Installing necessary packages
 sudo yum install wget unzip -y
 
 
@@ -9,7 +21,6 @@ sudo yum install wget unzip -y
 if [ -d "/opt/tomcat" ]
 then
 	echo "Directory exists"
-	exit 0
 else
 	sudo mkdir /opt/tomcat
 fi
@@ -19,21 +30,16 @@ fi
 sudo useradd -m -U -d /opt/tomcat -s /bin/false tomcat
 
 
-cd /tmp/
+cd /opt/tomcat
 
 #download tomcat
-
 sudo wget $TOMCAT
 
-
 #unzip zipped package
-unzip apache-tomcat-*.zip
+sudo unzip apache-tomcat-*.zip
 
 #clean up zip package
-sudo rm -rf apache-tomcat-*.zip
-
-#move package from /tmp to /opt
-sudo mv /tmp/apache-tomcat-* /opt/tomcat/
+sudo rm -rf /opt/tomcat/apache-tomcat-*.zip
 
 #creating a soft link 
 sudo ln -s /opt/tomcat/apache-tomcat-* /opt/tomcat/latest
@@ -44,11 +50,12 @@ sudo chown -R tomcat: /opt/tomcat/apache-tomcat-* /opt/tomcat/latest
 #giving executable permissions to all .sh in /bin
 sudo chmod +x /opt/tomcat/latest/bin/*.sh
 
-#setting up systemd
+#setting up tomcat.service in systemd
 
 if [ -e "/etc/systemd/system/tomcat.service" ]
 then
 	echo "You already have tomcat.service in systemd"
+	exit 0
 else
 	sudo touch /etc/systemd/system/tomcat.service
 
@@ -76,6 +83,15 @@ else
 
 	#Reloading system daemon
 	sudo systemctl daemon-reload
+	
+	#starting tomcat service
+	sudo systemctl start tomcat
+	if [ $? -eq 0 ]
+	then
+		echo "Tomcat service started"
+	else:
+		echo "Please Use \"sudo systemctl status tomcat\" to diagnose"
+	fi
 
 	echo "You've successfully installed tomcat as a service"
 	echo "use sudo systemctl start|stop|restart|enable|disable tomcat"
